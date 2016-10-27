@@ -1,0 +1,16 @@
+﻿Build started 27/10/2016 10:56:41.
+     1>Project "C:\Users\Davide\Desktop\PDS\Progetto\Server\Server\Server.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D WIN32 /D _DEBUG /D _WINDOWS /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt WindowsMonitor.cpp
+         WindowsMonitor.cpp
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Davide\Desktop\PDS\Progetto\Server\Debug\Server.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Davide\Desktop\PDS\Progetto\Server\Debug\Server.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Davide\Desktop\PDS\Progetto\Server\Debug\Server.lib" /MACHINE:X86 Debug\Resource.res
+         Debug\IconIO.obj
+         Debug\WindowsMonitor.obj
+         Debug\TrayIcon.obj
+         Server.vcxproj -> C:\Users\Davide\Desktop\PDS\Progetto\Server\Debug\Server.exe
+     1>Done Building Project "C:\Users\Davide\Desktop\PDS\Progetto\Server\Server\Server.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:01.77
