@@ -1,20 +1,17 @@
 #pragma once
+#include "Server.h"
 #include "TrayIcon.h"
 #include "IconIO.h"
-#include "rapidjson\prettywriter.h"
-#include "Messages.h"
+#include "UpdateMessage.h"
+#include "cereal\archives\json.hpp"
 #include <iostream>
 #include <thread>
 #include <list>
 
-#define UWM_WCREATE		(WM_USER + 0)
-#define UWM_WDESTROYED	(WM_USER + 1)
-#define UWM_WFOCUSED	(WM_USER + 2)
-
 using namespace std;
-using namespace rapidjson;
 
 TrayIcon* icon;
+Server s;
 
 typedef struct {
 	HWND hwnd;
@@ -79,27 +76,50 @@ void enumLoop(HWND hWnd) {
 		list<WInfo>::iterator i = wList.begin();
 		while (i != wList.end()) {
 			if (i->isNew) {							//E' stata appena creata
-				PostMessage(hWnd, UWM_WCREATE, (WPARAM)i->title, NULL);
+				//IconIO::SaveIcon(i->icon, "icona.ico");
 
-				IconIO::SaveIcon(i->icon, "icona.ico");
+				ostringstream ostream;
+				{
+					cereal::JSONOutputArchive archive(ostream);
+					UpdateMessage message(UpdateType::WND_CREATED, GetDlgCtrlID(i->hwnd), i->title);
+					message.serialize(archive);
+				}
+				s.sendMessage(ostream.str().c_str());
 
+				cout << "Created: " << (int)(i->hwnd) << " " << i->title << endl;
 				i->isNew = false;
 			}
 
 			if (i->isStillRunning) {
 				if (i->hwnd == focusedWindow) {
 					if (!i->wasFocused) {			//Ha appena ottenuto il focus
-						PostMessage(hWnd, UWM_WFOCUSED, (WPARAM)i->title, NULL);
+
+						ostringstream ostream;
+						{
+							cereal::JSONOutputArchive archive(ostream);
+							UpdateMessage message(UpdateType::WND_FOCUSED, GetDlgCtrlID(i->hwnd), i->title);
+							message.serialize(archive);
+						}
+						s.sendMessage(ostream.str().c_str());
+
+						cout << "Focused: " << (int)(i->hwnd) << " " << i->title << endl;
 						i->wasFocused = true;
 					}
 				} else
 					i->wasFocused = false;
 				i->isStillRunning = false;			//Il prossimo ciclo controllerà se è ancora aperta
 				++i;
-			} else {									//E' stata appena distrutta
-				char temp[100];
-				strcpy_s(temp, sizeof(i->title), i->title);
-				PostMessage(hWnd, UWM_WDESTROYED, (WPARAM)temp, NULL);
+			} else {								//E' stata appena distrutta
+
+				ostringstream ostream;
+				{
+					cereal::JSONOutputArchive archive(ostream);
+					UpdateMessage message(UpdateType::WND_DESTROYED, GetDlgCtrlID(i->hwnd), i->title);
+					message.serialize(archive);
+				}
+				s.sendMessage(ostream.str().c_str());
+
+				cout << "Destroyed: " << (int)(i->hwnd) << " " << i->title << endl;
 				i = wList.erase(i);
 			}
 		}
@@ -109,7 +129,6 @@ void enumLoop(HWND hWnd) {
 // Processes the messages received by the hidden window
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
-	LPSTR title = "";
 	switch (message) {
 	case UWM_TRAYICON:
 
@@ -133,18 +152,6 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 			}
 		}
 		break;
-	case UWM_WCREATE:
-		title = (LPSTR)wParam;
-		cout << "Created: " << title << endl;
-		break;
-	case UWM_WDESTROYED:
-		title = (LPSTR)wParam;
-		cout << "Destroyed: " << title << endl;
-		break;
-	case UWM_WFOCUSED:
-		title = (LPSTR)wParam;
-		cout << "Focused: " << title << endl;
-		break;
 	}
 
 	return DefWindowProc(hwnd, message, wParam, lParam);
@@ -154,46 +161,38 @@ int main() {
 	icon = new TrayIcon(WindowProcedure);
 	icon->Show();
 
-	//HWND hwnd = GetForegroundWindow();
-	//WindowCreated wc1;
-	//GetWindowText(GetForegroundWindow(), wc1.title, 100);
-	//wc1.id = GetDlgCtrlID(hwnd);
+	//Avvio Server
+	s.startup();
 
-	//cout << "Title: " << wc1.title << endl << "Id: " << wc1.id << endl;
+	if (s.listenForClient() == 1)
+		cout << "Connected" << endl;
 
-	//StringBuffer sb;
-	//PrettyWriter<StringBuffer> writer(sb);
-	//wc1.Serialize(writer);
-	////char* str = (char*)malloc(sb.GetLength() * sizeof(char));
-	////strcpy_s(str, sb.GetLength(), sb.GetString());
-	//cout << sb.GetString() << endl;
+	//Loop enumwin
+	thread t(enumLoop, icon->hWnd);
 
-	//Document d;
-	//if (!d.Parse(str).HasParseError())
-	//	cout << "error" << endl;
-	//else {
-	//	WindowCreated wc2;
-	//	wc2.Deserialize(d);
-	//	cout << "Title: " << wc2.title << endl << "Id: " << wc2.id << endl;
+	//Prova deserializzazione
+
+	//{
+	//	UpdateMessage message;
+	//	istringstream istream(ostream.str());
+	//	{
+	//		cereal::JSONInputArchive archive(istream);
+	//		message.deserialize(archive);
+	//	}
+	//	cout << "Type: " << message.type << endl << "Title: " << message.wndName << endl << "Id: " << message.wndId << endl;
+
 	//}
+
+	//DLL
 
 	//if (!setDLL())
 	//	return -1;
 
-	//Server s;
-	//s.startup();
-	//if (s.listenForClient() == 1)
-	//	std::cout << "Connected" << std::endl;
-
-	thread t(enumLoop, icon->hWnd);
-
 	MSG messages;
 	while (GetMessage(&messages, NULL, 0, 0)) {
-		/* Translate virtual-key messages into character messages */
 		TranslateMessage(&messages);
-		/* Send message to WindowProcedure */
 		DispatchMessage(&messages);
 	}
 
-	//t.join();
+	t.join();
 }
