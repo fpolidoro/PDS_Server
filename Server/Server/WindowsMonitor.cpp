@@ -154,28 +154,28 @@ int main() {
 	icon = new TrayIcon(WindowProcedure);
 	icon->Show();
 
-	HWND hwnd = GetForegroundWindow();
-	WindowCreated wc1;
-	GetWindowText(GetForegroundWindow(), wc1.title, 100);
-	wc1.id = GetDlgCtrlID(hwnd);
+	//HWND hwnd = GetForegroundWindow();
+	//WindowCreated wc1;
+	//GetWindowText(GetForegroundWindow(), wc1.title, 100);
+	//wc1.id = GetDlgCtrlID(hwnd);
 
-	cout << "Title: " << wc1.title << endl << "Id: " << wc1.id << endl;
+	//cout << "Title: " << wc1.title << endl << "Id: " << wc1.id << endl;
 
-	StringBuffer sb;
-	PrettyWriter<StringBuffer> writer(sb);
-	wc1.Serialize(writer);
-	char* str = (char*)malloc(sb.GetLength() * sizeof(char));
-	strcpy_s(str, sb.GetLength(), sb.GetString());
-	cout << str << endl;
+	//StringBuffer sb;
+	//PrettyWriter<StringBuffer> writer(sb);
+	//wc1.Serialize(writer);
+	////char* str = (char*)malloc(sb.GetLength() * sizeof(char));
+	////strcpy_s(str, sb.GetLength(), sb.GetString());
+	//cout << sb.GetString() << endl;
 
-	Document d;
-	if (!d.Parse(str).HasParseError())
-		cout << "error" << endl;
-	else {
-		WindowCreated wc2;
-		wc2.Deserialize(d);
-		cout << "Title: " << wc2.title << endl << "Id: " << wc2.id << endl;
-	}
+	//Document d;
+	//if (!d.Parse(str).HasParseError())
+	//	cout << "error" << endl;
+	//else {
+	//	WindowCreated wc2;
+	//	wc2.Deserialize(d);
+	//	cout << "Title: " << wc2.title << endl << "Id: " << wc2.id << endl;
+	//}
 
 	//if (!setDLL())
 	//	return -1;
@@ -185,7 +185,7 @@ int main() {
 	//if (s.listenForClient() == 1)
 	//	std::cout << "Connected" << std::endl;
 
-	//thread t(enumLoop, icon->hWnd);
+	thread t(enumLoop, icon->hWnd);
 
 	MSG messages;
 	while (GetMessage(&messages, NULL, 0, 0)) {

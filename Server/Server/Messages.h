@@ -15,6 +15,7 @@ public:
 		writer.Int(id);
 		writer.String("title:");
 		writer.String(title);
+
 		writer.EndObject();
 	}
 
