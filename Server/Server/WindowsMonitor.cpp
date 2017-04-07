@@ -1,10 +1,12 @@
 #pragma once
 #include "Server.h"
 #include "TrayIcon.h"
-#include "IconIO.h"
+#include "IconSave.cpp"
 #include "UpdateMessage.h"
 #include "cereal\archives\json.hpp"
+#include "cereal\external\base64.hpp"
 #include <iostream>
+#include <fstream>
 #include <thread>
 #include <list>
 
@@ -76,16 +78,27 @@ void enumLoop(HWND hWnd) {
 		list<WInfo>::iterator i = wList.begin();
 		while (i != wList.end()) {
 			if (i->isNew) {							//E' stata appena creata
-				//IconIO::SaveIcon(i->icon, "icona.ico");
+				IconSave::SaveIcon("temp.ico", &(i->icon), 1);
 
-				ostringstream ostream;
-				{
-					cereal::JSONOutputArchive archive(ostream);
-					UpdateMessage message(UpdateType::WND_CREATED, GetDlgCtrlID(i->hwnd), i->title);
-					message.serialize(archive);
+				ifstream in("temp.ico", ios::binary);
+				if (in.is_open()) {
+					ostringstream stream;
+					stream << in.rdbuf();
+
+					const unsigned char* data = (const unsigned char*)(stream.str().c_str());
+					string text = cereal::base64::encode(data, stream.str().length());
+
+					ostringstream ostream;
+					{
+						cereal::JSONOutputArchive archive(ostream);
+						UpdateMessage message(UpdateType::WND_CREATED, (int)(i->hwnd), i->title, text);
+						message.serialize(archive);
+					}
+					s.sendMessage(ostream.str().c_str());
+					in.close();
+				} else {
+					cout << "Error in opening temporary file" << endl;
 				}
-				s.sendMessage(ostream.str().c_str());
-
 				cout << "Created: " << (int)(i->hwnd) << " " << i->title << endl;
 				i->isNew = false;
 			}
@@ -97,7 +110,7 @@ void enumLoop(HWND hWnd) {
 						ostringstream ostream;
 						{
 							cereal::JSONOutputArchive archive(ostream);
-							UpdateMessage message(UpdateType::WND_FOCUSED, GetDlgCtrlID(i->hwnd), i->title);
+							UpdateMessage message(UpdateType::WND_FOCUSED, (int)(i->hwnd), i->title, std::string(""));
 							message.serialize(archive);
 						}
 						s.sendMessage(ostream.str().c_str());
@@ -114,7 +127,7 @@ void enumLoop(HWND hWnd) {
 				ostringstream ostream;
 				{
 					cereal::JSONOutputArchive archive(ostream);
-					UpdateMessage message(UpdateType::WND_DESTROYED, GetDlgCtrlID(i->hwnd), i->title);
+					UpdateMessage message(UpdateType::WND_DESTROYED, (int)(i->hwnd), i->title, std::string(""));
 					message.serialize(archive);
 				}
 				s.sendMessage(ostream.str().c_str());
@@ -170,24 +183,7 @@ int main() {
 	//Loop enumwin
 	thread t(enumLoop, icon->hWnd);
 
-	//Prova deserializzazione
-
-	//{
-	//	UpdateMessage message;
-	//	istringstream istream(ostream.str());
-	//	{
-	//		cereal::JSONInputArchive archive(istream);
-	//		message.deserialize(archive);
-	//	}
-	//	cout << "Type: " << message.type << endl << "Title: " << message.wndName << endl << "Id: " << message.wndId << endl;
-
-	//}
-
-	//DLL
-
-	//if (!setDLL())
-	//	return -1;
-
+	//Loop messaggi di windows
 	MSG messages;
 	while (GetMessage(&messages, NULL, 0, 0)) {
 		TranslateMessage(&messages);

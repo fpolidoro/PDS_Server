@@ -79,14 +79,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="IconIO.cpp" />
+    <ClCompile Include="IconSave.cpp" />
     <ClCompile Include="UpdateMessage.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="WindowsMonitor.cpp" />
     <ClCompile Include="TrayIcon.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="IconIO.h" />
     <ClInclude Include="UpdateMessage.h" />
     <ClInclude Include="MessageTypes.h" />
     <ClInclude Include="resource.h" />
