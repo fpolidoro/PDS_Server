@@ -80,12 +80,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="IconSave.cpp" />
+    <ClCompile Include="KeyMessage.cpp" />
     <ClCompile Include="UpdateMessage.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="WindowsMonitor.cpp" />
     <ClCompile Include="TrayIcon.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="KeyMessage.h" />
     <ClInclude Include="UpdateMessage.h" />
     <ClInclude Include="MessageTypes.h" />
     <ClInclude Include="resource.h" />

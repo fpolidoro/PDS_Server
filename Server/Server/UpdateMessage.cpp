@@ -1,5 +1,4 @@
 #include "UpdateMessage.h"
-#include <array>
 
 UpdateMessage::UpdateMessage() {
 	this->type = UpdateType::WND_FOCUSED;

@@ -15,6 +15,10 @@ using System.Net.Sockets;
 namespace ClientTest {
     public partial class Form1 : Form {
 
+        int currentID, keyCode = 0;
+        string keyString;
+        bool alt = false, ctrl = false, shift = false;
+
         const string DEFAULT_SERVER = "localhost";
         const int DEFAULT_PORT = 27015;
         System.Net.Sockets.Socket socket;
@@ -36,6 +40,11 @@ namespace ClientTest {
             return stream;
         }
 
+        public bool Send(string str) {
+            byte[] message = System.Text.Encoding.ASCII.GetBytes(str + "\0");
+            return (socket.Send(message)) > 0 ? true : false;
+        }
+
         private void btnConnect_Click(object sender, EventArgs e) {
             try {
                 IPHostEntry hostInfo = Dns.GetHostByName(DEFAULT_SERVER);
@@ -47,7 +56,6 @@ namespace ClientTest {
                 socket.Connect(clientEndPoint);
                 btnConnect.Text = "Connected";
                 btnConnect.Enabled = false;
-                //imgIcon.Image = Image.FromFile("C:\\Users\\Davide\\Desktop\\Progetto malnati\\ClientTest\\ClientTest\\default.ico");
             }
             catch (Exception ex) {
                 Console.WriteLine(ex.Message);
@@ -61,6 +69,7 @@ namespace ClientTest {
             string stream = Receive();
             UpdateMessage message = JsonConvert.DeserializeObject<UpdateMessage>(stream);
 
+            currentID = message.wndId;
             lblID.Text = "" + message.wndId;
             lblTitle.Text = message.wndName;
             lblType.Text = message.type.ToString();
@@ -68,7 +77,7 @@ namespace ClientTest {
             try {
                 imgIcon.Image = Base64ToImage(message.wndIcon);
             }
-            catch {}
+            catch { }
         }
 
         private static Image Base64ToImage(string base64String) {
@@ -78,5 +87,56 @@ namespace ClientTest {
 
             return icon.ToBitmap();
         }
+
+        private void btnSend_Click(object sender, EventArgs e) {
+            KeyMessage message = new KeyMessage();
+
+            if (ctrl) message.keys[message.nKeys++] = (int)Keys.ControlKey;
+            if (alt) message.keys[message.nKeys++] = (int)Keys.Alt;
+            if (shift) message.keys[message.nKeys++] = (int)Keys.ShiftKey;
+            if (keyCode != 0) message.keys[message.nKeys++] = keyCode;
+
+            string str = JsonConvert.SerializeObject(message);
+            Send(str);
+        }
+
+        private void txtComb_KeyDown(object sender, KeyEventArgs e) {
+            if (e.Control)
+                ctrl = !ctrl;
+            else if (e.Alt)
+                alt = !alt;
+            else if (e.Shift)
+                shift = !shift;
+
+            switch (e.KeyCode) {
+                case Keys.ControlKey:
+                case Keys.Alt:
+                case Keys.ShiftKey:
+                case Keys.Menu:
+                    break;
+                default:
+                    keyString = (e.KeyCode.ToString().Replace("Oem", string.Empty));
+                    keyCode = (int)e.KeyCode;
+                    break;
+            }
+
+            e.Handled = true;
+
+            List<string> keys = new List<string>();
+            if (ctrl) keys.Add("CTRL");
+            if (alt) keys.Add("ALT");
+            if (shift) keys.Add("SHIFT");
+            keys.Add(keyString);
+            txtComb.Text = string.Join(" + ", keys);
+        }
+
+        //private void btnProva2_Click(object sender, EventArgs e) {
+        //    KeyMessage message = new KeyMessage();
+        //    message.nKeys = 2;
+        //    message.keys[0] = (int)Keys.ControlKey;
+        //    message.keys[1] = (int)Keys.X;
+        //    string str = JsonConvert.SerializeObject(message);
+        //    Send(str);
+        //}
     }
 }

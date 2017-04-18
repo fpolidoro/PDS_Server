@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include "Server.h"
 
 Server::Server() {}
@@ -95,6 +94,21 @@ int Server::sendMessage(const char* str) {
 		WSACleanup();
 		return WSAGetLastError();
 	}
+	delete(buf);
+	return 1;
+}
+
+int Server::receiveMessage(std::string& str) {
+	char* buf = new char[512];
+	int result = recv(ClientSocket, buf, 512, 0);
+	if (result == SOCKET_ERROR) {
+		std::cout << "Send failed, error: " << WSAGetLastError() << std::endl;
+		closesocket(ClientSocket);
+		WSACleanup();
+		return WSAGetLastError();
+	}
+	std::string received(buf);
+	str.append(received);
 	delete(buf);
 	return 1;
 }

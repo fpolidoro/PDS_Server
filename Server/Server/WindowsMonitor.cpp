@@ -3,6 +3,7 @@
 #include "TrayIcon.h"
 #include "IconSave.cpp"
 #include "UpdateMessage.h"
+#include "KeyMessage.h"
 #include "cereal\archives\json.hpp"
 #include "cereal\external\base64.hpp"
 #include <iostream>
@@ -60,9 +61,6 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 	newWindow.wasFocused = false;
 
 	wList.push_front(newWindow);
-
-	//char class_name[MAX_LENGHT];
-	//GetClassName(hwnd, class_name, sizeof(class_name));
 
 	return TRUE;
 }
@@ -139,6 +137,68 @@ void enumLoop(HWND hWnd) {
 	}
 }
 
+void SendKeyCombinationToTarget(HWND hwnd, size_t nKeys, int keys[]) {
+	for (size_t i = 0; i < nKeys; i++) 
+		PostMessage(hwnd, WM_KEYDOWN, keys[i], NULL);
+	for (size_t i = 0; i < nKeys; i++)
+		PostMessage(hwnd, WM_KEYUP, keys[i], NULL);
+
+	cout << "Sent " << keys[0] << " " << keys[1] << " " << keys[2] << " " << keys[3] << " to " << hwnd;
+
+}
+
+void SendKeyCombinationToFocus(size_t nKeys, int keys[]) {
+
+	INPUT ip;
+
+	//Sleep(3000);
+
+	//KeyDown
+	ip.type = INPUT_KEYBOARD;
+	ip.ki.wScan = 0;
+	ip.ki.time = 0;
+	ip.ki.dwExtraInfo = 0;
+	ip.ki.dwFlags = 0;
+
+	for (size_t i = 0; i < nKeys; i++) {
+		ip.ki.wVk = keys[i];
+		SendInput(1, &ip, sizeof(INPUT));
+	}
+
+	//KeyUp
+	ip.ki.dwFlags = KEYEVENTF_KEYUP;
+	for (size_t i = 0; i < nKeys; i++) {
+		ip.ki.wVk = keys[i];
+		SendInput(1, &ip, sizeof(INPUT));
+	}
+
+	return;
+}
+
+void serverLoop() {
+	if (s.listenForClient() == 1) {
+		cout << "Connected" << endl;
+
+		//Loop enumwin
+		thread loop(enumLoop, icon->hWnd);
+
+		//Loop ricezione
+		while (true) {
+			std::string str;
+			s.receiveMessage(str);
+
+			KeyMessage message;
+			istringstream stream(str);
+			{
+				cereal::JSONInputArchive archive(stream);
+				message.deserialize(archive);
+			}
+			SendKeyCombinationToFocus(message.nKeys, message.keys);
+		}
+		loop.join();
+	}
+}
+
 // Processes the messages received by the hidden window
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 
@@ -177,18 +237,16 @@ int main() {
 	//Avvio Server
 	s.startup();
 
-	if (s.listenForClient() == 1)
-		cout << "Connected" << endl;
-
-	//Loop enumwin
-	thread t(enumLoop, icon->hWnd);
+	//Connessione e ricezione
+	thread server(serverLoop);
 
 	//Loop messaggi di windows
+
 	MSG messages;
 	while (GetMessage(&messages, NULL, 0, 0)) {
 		TranslateMessage(&messages);
 		DispatchMessage(&messages);
 	}
 
-	t.join();
+	server.join();
 }
