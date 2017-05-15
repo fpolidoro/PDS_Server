@@ -95,7 +95,6 @@ int Server::sendMessage(const char* str) {
 		return WSAGetLastError();
 	}
 	delete(buf);
-	return 1;
 }
 
 int Server::receiveMessage(std::string& str) {
@@ -114,7 +113,7 @@ int Server::receiveMessage(std::string& str) {
 }
 
 int Server::close() {
-	
+
 	int result = shutdown(ClientSocket, SD_SEND);
 	if (result == SOCKET_ERROR) {
 		std::cout << "Shutdown failed, error: " << WSAGetLastError() << std::endl;

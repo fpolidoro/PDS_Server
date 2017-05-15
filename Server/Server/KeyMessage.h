@@ -3,11 +3,9 @@
 
 class KeyMessage {
 public:
+	int wndId;
 	int nKeys;
-	int keys[4];
-
-	KeyMessage();
-	~KeyMessage();
+	int keys[5];
 
 	void serialize(cereal::JSONOutputArchive& archive);
 	void deserialize(cereal::JSONInputArchive& archive);

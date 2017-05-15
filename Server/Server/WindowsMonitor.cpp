@@ -15,11 +15,16 @@ using namespace std;
 
 TrayIcon* icon;
 Server s;
+thread server;
+bool connected = false;
+bool quit = false;
+bool noFocusSent = false;
 
 typedef struct {
 	HWND hwnd;
 	HICON icon;
-	char title[100];
+	string title;
+	string procName;
 	bool isNew;
 	bool isStillRunning;
 	bool wasFocused;
@@ -50,11 +55,26 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 
 	//La finestra è nuova
 	char title[100];
+	char path[MAX_PATH];
+	DWORD value = MAX_PATH;
+	PDWORD size = (PDWORD)MAX_PATH;
+	DWORD dwProcId = 0;
+
 	GetWindowText(hwnd, title, sizeof(title));
+	GetWindowThreadProcessId(hwnd, &dwProcId);
+	HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION, false, dwProcId);
+	QueryFullProcessImageName(hProc, 0, path, &value);
+	CloseHandle(hProc);
+
+	char drive[_MAX_DRIVE], dir[_MAX_DIR], fname[_MAX_FNAME], ext[_MAX_EXT];
+	_splitpath_s(path, drive, dir, fname, ext);
 
 	WInfo newWindow;
 	newWindow.hwnd = hwnd;
-	strcpy_s(newWindow.title, sizeof(title), title);
+	newWindow.title = "";
+	newWindow.title.append(title);
+	newWindow.procName.append(fname);
+	newWindow.procName.append(ext);
 	newWindow.icon = (HICON)GetClassLong(hwnd, GCL_HICON);
 	newWindow.isStillRunning = true;
 	newWindow.isNew = true;
@@ -66,13 +86,12 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 }
 
 void enumLoop(HWND hWnd) {
-
-	while (true) {
+	while (connected) {
 		this_thread::sleep_for(chrono::milliseconds(500));
 
 		EnumWindows(EnumWindowsProc, NULL);
 		HWND focusedWindow = GetForegroundWindow();
-
+		bool foundFocus = false;
 		list<WInfo>::iterator i = wList.begin();
 		while (i != wList.end()) {
 			if (i->isNew) {							//E' stata appena creata
@@ -89,7 +108,7 @@ void enumLoop(HWND hWnd) {
 					ostringstream ostream;
 					{
 						cereal::JSONOutputArchive archive(ostream);
-						UpdateMessage message(UpdateType::WND_CREATED, (int)(i->hwnd), i->title, text);
+						UpdateMessage message(UpdateType::WND_CREATED, (int)(i->hwnd), i->title, i->procName, text);
 						message.serialize(archive);
 					}
 					s.sendMessage(ostream.str().c_str());
@@ -97,23 +116,27 @@ void enumLoop(HWND hWnd) {
 				} else {
 					cout << "Error in opening temporary file" << endl;
 				}
-				cout << "Created: " << (int)(i->hwnd) << " " << i->title << endl;
+
 				i->isNew = false;
+
+				cout << "Created: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
 			}
 
 			if (i->isStillRunning) {
 				if (i->hwnd == focusedWindow) {
+					foundFocus = true;
+					noFocusSent = false;
 					if (!i->wasFocused) {			//Ha appena ottenuto il focus
 
 						ostringstream ostream;
 						{
 							cereal::JSONOutputArchive archive(ostream);
-							UpdateMessage message(UpdateType::WND_FOCUSED, (int)(i->hwnd), i->title, std::string(""));
+							UpdateMessage message(UpdateType::WND_FOCUSED, (int)(i->hwnd), "", "", "");
 							message.serialize(archive);
 						}
 						s.sendMessage(ostream.str().c_str());
 
-						cout << "Focused: " << (int)(i->hwnd) << " " << i->title << endl;
+						cout << "Focused: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
 						i->wasFocused = true;
 					}
 				} else
@@ -125,33 +148,52 @@ void enumLoop(HWND hWnd) {
 				ostringstream ostream;
 				{
 					cereal::JSONOutputArchive archive(ostream);
-					UpdateMessage message(UpdateType::WND_DESTROYED, (int)(i->hwnd), i->title, std::string(""));
+					UpdateMessage message(UpdateType::WND_DESTROYED, (int)(i->hwnd), "", "", "");
 					message.serialize(archive);
 				}
 				s.sendMessage(ostream.str().c_str());
 
-				cout << "Destroyed: " << (int)(i->hwnd) << " " << i->title << endl;
+				cout << "Destroyed: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
 				i = wList.erase(i);
 			}
 		}
+		if (!foundFocus && !noFocusSent) {
+			noFocusSent = true;
+			for each (WInfo i in wList)
+				i.wasFocused = false;
+
+			ostringstream ostream;
+			{
+				cereal::JSONOutputArchive archive(ostream);
+				UpdateMessage message;
+				message.serialize(archive);
+			}
+			s.sendMessage(ostream.str().c_str());
+
+			cout << "No focus" << endl;
+		}
 	}
+	wList.clear();
 }
 
-void SendKeyCombinationToTarget(HWND hwnd, size_t nKeys, int keys[]) {
-	for (size_t i = 0; i < nKeys; i++) 
-		PostMessage(hwnd, WM_KEYDOWN, keys[i], NULL);
-	for (size_t i = 0; i < nKeys; i++)
-		PostMessage(hwnd, WM_KEYUP, keys[i], NULL);
+void SendKeyCombination(HWND hwnd, size_t nKeys, int keys[]) {
 
-	cout << "Sent " << keys[0] << " " << keys[1] << " " << keys[2] << " " << keys[3] << " to " << hwnd;
+	if (hwnd != NULL) {
+		//DWORD currentThreadId = GetCurrentThreadId();
+		//DWORD otherThreadId = GetWindowThreadProcessId(hwnd, NULL);
 
-}
+		//if (otherThreadId != currentThreadId) {
+		//	AttachThreadInput(currentThreadId, otherThreadId, TRUE);
+		//}
 
-void SendKeyCombinationToFocus(size_t nKeys, int keys[]) {
+		SetForegroundWindow(hwnd);
+
+		//if (otherThreadId != currentThreadId) {
+		//	AttachThreadInput(currentThreadId, otherThreadId, FALSE);
+		//}
+	}
 
 	INPUT ip;
-
-	//Sleep(3000);
 
 	//KeyDown
 	ip.type = INPUT_KEYBOARD;
@@ -176,26 +218,36 @@ void SendKeyCombinationToFocus(size_t nKeys, int keys[]) {
 }
 
 void serverLoop() {
-	if (s.listenForClient() == 1) {
-		cout << "Connected" << endl;
+	while (!quit) {
+		s.startup();
+		cout << "Waiting for connection..." << endl;
 
-		//Loop enumwin
-		thread loop(enumLoop, icon->hWnd);
+		if (s.listenForClient() == 1) {
+			cout << "Connected" << endl;
 
-		//Loop ricezione
-		while (true) {
-			std::string str;
-			s.receiveMessage(str);
+			connected = true;
 
-			KeyMessage message;
-			istringstream stream(str);
-			{
-				cereal::JSONInputArchive archive(stream);
-				message.deserialize(archive);
+			//Loop enumwin
+			thread loop(enumLoop, icon->hWnd);
+
+			//Loop ricezione
+			while (connected) {
+				std::string str;
+				if (s.receiveMessage(str) > 0) {
+					KeyMessage message;
+					istringstream stream(str);
+					{
+						cereal::JSONInputArchive archive(stream);
+						message.deserialize(archive);
+					}
+					SendKeyCombination((HWND)message.wndId, message.nKeys, message.keys);
+				} else {
+					connected = false;
+					s.close();
+				}
 			}
-			SendKeyCombinationToFocus(message.nKeys, message.keys);
+			loop.join();
 		}
-		loop.join();
 	}
 }
 
@@ -221,7 +273,13 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 			if (clicked == ID_TRAY_EXIT) {
 				// quit the application.
 				Shell_NotifyIcon(NIM_DELETE, &(icon->iconData));
+
+				quit = true;
+				s.close();
+				server.join();
+
 				PostQuitMessage(0);
+
 			}
 		}
 		break;
@@ -230,15 +288,21 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM 
 	return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
+BOOL WINAPI ConsoleHandlerRoutine(DWORD dwCtrlType) {
+	quit = true;
+	s.close();
+	server.join();
+	return FALSE;
+}
+
 int main() {
+	SetConsoleCtrlHandler(ConsoleHandlerRoutine, TRUE);
+
 	icon = new TrayIcon(WindowProcedure);
 	icon->Show();
 
-	//Avvio Server
-	s.startup();
-
 	//Connessione e ricezione
-	thread server(serverLoop);
+	server = thread(serverLoop);
 
 	//Loop messaggi di windows
 
@@ -247,6 +311,4 @@ int main() {
 		TranslateMessage(&messages);
 		DispatchMessage(&messages);
 	}
-
-	server.join();
 }
