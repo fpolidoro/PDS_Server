@@ -3,7 +3,7 @@
 
 class KeyMessage {
 public:
-	int wndId;
+	std::string procName;
 	int nKeys;
 	int keys[5];
 

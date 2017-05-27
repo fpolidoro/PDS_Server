@@ -78,7 +78,6 @@ int Server::listenForClient() {
 }
 
 int Server::sendMessage(const char* str) {
-
 	INT32 length = strlen(str) + 1;
 	char* buf = new char[length + 4];
 	buf[0] = length & 0xff;
@@ -94,7 +93,9 @@ int Server::sendMessage(const char* str) {
 		WSACleanup();
 		return WSAGetLastError();
 	}
-	delete(buf);
+
+	delete[] buf;
+	return 1;
 }
 
 int Server::receiveMessage(std::string& str) {
@@ -106,9 +107,11 @@ int Server::receiveMessage(std::string& str) {
 		WSACleanup();
 		return WSAGetLastError();
 	}
+
 	std::string received(buf);
 	str.append(received);
-	delete(buf);
+
+	delete[] buf;
 	return 1;
 }
 
