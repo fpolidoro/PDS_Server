@@ -61,17 +61,17 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 
 	//Suddivide il path in drive, directory, nome del file ed estensione
 	char drive[_MAX_DRIVE], dir[_MAX_DIR], fname[_MAX_FNAME], ext[_MAX_EXT];
-	_splitpath_s(path, drive, dir, fname, ext);		
+	_splitpath_s(path, drive, dir, fname, ext);
 
 	//Filtra le applicazioni di windows 10
-	if (string(fname) == "ApplicationFrameHost")	
+	if (string(fname) == "ApplicationFrameHost")
 		return TRUE;
 
 	//La finestra è valida
 
 	list<WInfo>::iterator i = wList.begin();
 	while (i != wList.end()) {
-		if (i->hwnd == hwnd) {	
+		if (i->hwnd == hwnd) {
 			i->isStillRunning = true;	//La finestra è ancora in lista
 			return TRUE;
 		}
@@ -102,19 +102,19 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 //Prepara la stringa JSON
 string packJSON(UpdateType type, int hwnd, string title, string procName, string icon) {
 	ostringstream ostream;
-	try {	
+	try {
 		cereal::JSONOutputArchive archive(ostream);
 		UpdateMessage message(type, hwnd, title, procName, icon);
 		message.serialize(archive);
 	} catch (...) {
-		cerr << "Errore nella scrittura del JSON" << endl;
+		cerr << "Error while writing JSON" << endl;
 		return "";
 	}
 	return ostream.str();
 }
 
 //Controlla in polling le finestre attive
-void enumLoop(HWND hWnd) {
+void enumLoop() {
 	while (connected.load()) {
 		this_thread::sleep_for(chrono::milliseconds(500));
 		lock_guard<mutex> lock(mtx);
@@ -124,7 +124,7 @@ void enumLoop(HWND hWnd) {
 
 		bool foundFocus = false;
 		list<WInfo>::iterator i = wList.begin();	//Cicla tutte le finestre
-		while (i != wList.end()) {	
+		while (i != wList.end()) {
 
 			if (i->isNew) {							//La finestra è stata appena creata
 				string strIcon("");
@@ -138,13 +138,16 @@ void enumLoop(HWND hWnd) {
 				delete buf;
 
 				string message = packJSON(UpdateType::WND_CREATED, (int)(i->hwnd), i->title, i->procName, strIcon);
-				
 				if (connected.load() && message != "")
-					s.sendMessage(message.c_str());
+					if (s.sendMessage(message.c_str()) != 1) {
+						connected.store(false);
+						s.close();
+						break;
+					} else {
+						cout << "Created: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
+					}
 
 				i->isNew = false;
-
-				cout << "Created: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
 			}
 
 			if (i->isStillRunning) {
@@ -157,9 +160,13 @@ void enumLoop(HWND hWnd) {
 						string message = packJSON(UpdateType::WND_FOCUSED, (int)(i->hwnd), "", "", "");
 
 						if (connected.load() && message != "")
-							s.sendMessage(message.c_str());
-
-						cout << "Focused: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
+							if (s.sendMessage(message.c_str()) != 1) {
+								connected.store(false);
+								s.close();
+								break;
+							} else {
+								cout << "Focused: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
+							}
 						i->wasFocused = true;
 					}
 				} else {
@@ -174,27 +181,36 @@ void enumLoop(HWND hWnd) {
 				string message = packJSON(UpdateType::WND_DESTROYED, (int)(i->hwnd), "", "", "");
 
 				if (connected.load() && message != "")
-					s.sendMessage(message.c_str());
-
-				cout << "Destroyed: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
+					if (s.sendMessage(message.c_str()) != 1) {
+						connected.store(false);
+						s.close();
+						break;
+					} else {
+						cout << "Destroyed: " << (int)(i->hwnd) << " " << i->title << " " << i->procName << endl;
+					}
 				i = wList.erase(i);
 			}
 		}
 
 		if (!foundFocus && !noFocusSent) {	//Non ci sono finestre in focus e il messaggio per l'assenza del focus non è ancora stato inviato
-			
+
 			noFocusSent = true;
 			for each (WInfo i in wList)
-				i.wasFocused = false;		
+				i.wasFocused = false;
 
 			string message = packJSON(UpdateType::WND_FOCUSED, 0, "", "", "");
 
 			if (connected.load() && message != "")
-				s.sendMessage(message.c_str());
-
-			cout << "No focus" << endl;
+				if (s.sendMessage(message.c_str()) != 1) {
+					connected.store(false);
+					s.close();
+					break;
+				} else {
+					cout << "No focus" << endl;
+				}
 		}
 	}
+
 	wList.clear();
 }
 
@@ -214,7 +230,7 @@ void SendKeyCombination(HWND hwnd, size_t nKeys, int keys[]) {
 	ip.ki.time = 0;
 	ip.ki.dwExtraInfo = 0;
 	ip.ki.dwFlags = 0;
-	
+
 	for (size_t i = 0; i < nKeys; i++) {
 		ip.ki.wVk = keys[i];
 		SendInput(1, &ip, sizeof(INPUT));
@@ -222,7 +238,7 @@ void SendKeyCombination(HWND hwnd, size_t nKeys, int keys[]) {
 
 	//Effettua il KeyUp per ogni tasto
 	ip.ki.dwFlags = KEYEVENTF_KEYUP;
-	
+
 	for (size_t i = 0; i < nKeys; i++) {
 		ip.ki.wVk = keys[i];
 		SendInput(1, &ip, sizeof(INPUT));
@@ -241,8 +257,8 @@ void serverLoop() {
 
 			connected.store(true);
 
-			//Loop enumwin
-			thread loop(enumLoop, icon->hWnd);
+			//Loop enumwin e invio
+			thread loop(enumLoop);
 
 			//Loop ricezione
 			while (connected.load()) {
@@ -255,7 +271,9 @@ void serverLoop() {
 						cereal::JSONInputArchive archive(stream);
 						message.deserialize(archive);
 					} catch (...) {
-						cerr << "Errore nella lettura del JSON" << endl;
+						cerr << "Error while reading JSON" << endl;
+						connected.store(false);
+						s.close();
 						break;
 					}
 
@@ -325,7 +343,7 @@ BOOL WINAPI ConsoleHandlerRoutine(DWORD dwCtrlType) {
 }
 
 int main() {
-	SetConsoleCtrlHandler(ConsoleHandlerRoutine, TRUE);	
+	SetConsoleCtrlHandler(ConsoleHandlerRoutine, TRUE);
 
 	icon = new TrayIcon(WindowProcedure);
 	icon->Show();
