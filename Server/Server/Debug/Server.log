@@ -1,10 +1,3 @@
-﻿  WindowsMonitor.cpp
-c:\users\utente\desktop\server\server\cereal\external\rapidjson\document.h(958): warning C4003: parametri effettivi insufficienti per la macro 'max'
-c:\users\utente\desktop\server\server\cereal\external\rapidjson\document.h(964): warning C4003: parametri effettivi insufficienti per la macro 'min'
-c:\users\utente\desktop\server\server\cereal\external\rapidjson\document.h(965): warning C4003: parametri effettivi insufficienti per la macro 'max'
-c:\users\utente\desktop\server\server\cereal\external\rapidjson\document.h(982): warning C4003: parametri effettivi insufficienti per la macro 'max'
-c:\users\utente\desktop\server\server\cereal\external\rapidjson\document.h(983): warning C4003: parametri effettivi insufficienti per la macro 'max'
-c:\users\utente\desktop\server\server\cereal\details\polymorphic_impl.hpp(265): warning C4003: parametri effettivi insufficienti per la macro 'max'
-     Creazione della libreria C:\Users\utente\Desktop\Server\Debug\Server.lib e dell'oggetto C:\Users\utente\Desktop\Server\Debug\Server.exp
+﻿  Server.cpp
   Server.vcxproj -> C:\Users\utente\Desktop\Server\Debug\Server.exe
   Server.vcxproj -> C:\Users\utente\Desktop\Server\Debug\Server.pdb (Partial PDB)

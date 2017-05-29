@@ -99,10 +99,21 @@ int Server::sendMessage(const char* str) {
 }
 
 int Server::receiveMessage(std::string& str) {
-	char* buf = new char[512];
-	int result = recv(ClientSocket, buf, 512, 0);
+	char* buf = new char[4];
+	int result = recv(ClientSocket, buf, 4, 0);
 	if (result == SOCKET_ERROR) {
-		std::cout << "Send failed, error: " << WSAGetLastError() << std::endl;
+		std::cout << "Receive failed, error: " << WSAGetLastError() << std::endl;
+		closesocket(ClientSocket);
+		WSACleanup();
+		return WSAGetLastError();
+	}
+	int lenght = *(int*) buf;
+	delete[] buf;
+
+	buf = new char[lenght];
+	result = recv(ClientSocket, buf, lenght, 0);
+	if (result == SOCKET_ERROR) {
+		std::cout << "Receive failed, error: " << WSAGetLastError() << std::endl;
 		closesocket(ClientSocket);
 		WSACleanup();
 		return WSAGetLastError();
