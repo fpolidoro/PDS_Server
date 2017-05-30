@@ -285,7 +285,7 @@ void serverLoop() {
 							}
 						}
 					} else {
-						SendKeyCombination(0, message.nKeys, message.keys);
+						SendKeyCombination(GetForegroundWindow(), message.nKeys, message.keys);
 					}
 
 				} else {
