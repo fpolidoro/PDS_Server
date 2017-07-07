@@ -1,0 +1,14 @@
+﻿  IconManager.cpp
+IconManager.cpp(36): warning C4244: 'inizializzazione': conversione da 'ULONGLONG' a 'int'. Possibile perdita di dati.
+  KeyMessage.cpp
+  UpdateMessage.cpp
+  Server.cpp
+  main.cpp
+c:\users\utente\desktop\server\server\cereal/details/polymorphic_impl.hpp(265): warning C4003: parametri effettivi insufficienti per la macro 'max'
+  TrayIcon.cpp
+     Creazione della libreria C:\Users\utente\Desktop\Server\Release\Server.lib e dell'oggetto C:\Users\utente\Desktop\Server\Release\Server.exp
+  Generazione codice in corso...
+  All 2426 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Generazione codice terminata
+  Server.vcxproj -> C:\Users\utente\Desktop\Server\Release\Server.exe
+  Server.vcxproj -> C:\Users\utente\Desktop\Server\Release\Server.pdb (Full PDB)

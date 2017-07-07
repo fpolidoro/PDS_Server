@@ -78,14 +78,22 @@ int Server::listenForClient() {
 }
 
 int Server::sendMessage(const char* str) {
+
+	//Prepara un prefisso di 4 byte per la dimensione del messaggio
 	INT32 length = strlen(str) + 1;
 	char* buf = new char[length + 4];
+
 	buf[0] = length & 0xff;
 	buf[1] = (length >> 8) & 0xff;
 	buf[2] = (length >> 16) & 0xff;
 	buf[3] = (length >> 24) & 0xff;
+
+	//Accoda il messaggo
 	memcpy(buf + 4, str, length);
 
+	std::cout << "Sending " << length <<" bytes:" <<std::endl << str << std::endl;
+
+	//Invia
 	int result = send(ClientSocket, buf, length + 4, 0);
 	if (result == SOCKET_ERROR) {
 		std::cout << "Send failed, error: " << WSAGetLastError() << std::endl;
@@ -99,9 +107,12 @@ int Server::sendMessage(const char* str) {
 }
 
 int Server::receiveMessage(std::string& str) {
+
+	//Leggi i primi 4 byte del messaggio per ottenerne la dimensione
 	char* buf = new char[4];
 	int result = recv(ClientSocket, buf, 4, 0);
-	if (result == SOCKET_ERROR) {
+
+	if (result == SOCKET_ERROR || result == 0) {
 		std::cout << "Receive failed, error: " << WSAGetLastError() << std::endl;
 		closesocket(ClientSocket);
 		WSACleanup();
@@ -110,9 +121,10 @@ int Server::receiveMessage(std::string& str) {
 	int lenght = *(int*) buf;
 	delete[] buf;
 
+	//Ora che la dimensione è nota, leggi il messaggio
 	buf = new char[lenght];
 	result = recv(ClientSocket, buf, lenght, 0);
-	if (result == SOCKET_ERROR) {
+	if (result == SOCKET_ERROR || result == 0) {
 		std::cout << "Receive failed, error: " << WSAGetLastError() << std::endl;
 		closesocket(ClientSocket);
 		WSACleanup();

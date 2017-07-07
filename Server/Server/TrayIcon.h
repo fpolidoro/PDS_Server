@@ -2,8 +2,8 @@
 #include <windows.h>
 #include <shellapi.h>
 
-#define CLASSNAME "ProvaTray"
-#define NAME "ProvaTray"
+#define CLASSNAME "ServerTray"
+#define NAME "ServerTray"
 
 #define UWM_TRAYICON	(WM_USER + 3)
 
@@ -15,7 +15,6 @@
 class TrayIcon {
 public:
 	TrayIcon(LRESULT(CALLBACK *WindowProcedure)(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam));
-	~TrayIcon();
 	void Show();
 	NOTIFYICONDATA iconData;
 	HMENU HMenu;

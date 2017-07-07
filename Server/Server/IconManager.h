@@ -1,7 +1,8 @@
 #pragma once
 #include <Windows.h>
 #include <gdiplus.h>
-#pragma comment (lib,"Gdiplus.lib")
+
+//#pragma comment (lib,"Gdiplus.lib")
 
 using namespace Gdiplus;
 
