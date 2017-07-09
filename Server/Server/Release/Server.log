@@ -8,7 +8,9 @@ c:\users\utente\desktop\server\server\cereal/details/polymorphic_impl.hpp(265): 
   TrayIcon.cpp
      Creazione della libreria C:\Users\utente\Desktop\Server\Release\Server.lib e dell'oggetto C:\Users\utente\Desktop\Server\Release\Server.exp
   Generazione codice in corso...
-  All 2426 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  5 of 2426 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    26 functions had inline decision re-evaluated but remain unchanged
   Generazione codice terminata
   Server.vcxproj -> C:\Users\utente\Desktop\Server\Release\Server.exe
   Server.vcxproj -> C:\Users\utente\Desktop\Server\Release\Server.pdb (Full PDB)

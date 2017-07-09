@@ -91,8 +91,6 @@ int Server::sendMessage(const char* str) {
 	//Accoda il messaggo
 	memcpy(buf + 4, str, length);
 
-	std::cout << "Sending " << length <<" bytes:" <<std::endl << str << std::endl;
-
 	//Invia
 	int result = send(ClientSocket, buf, length + 4, 0);
 	if (result == SOCKET_ERROR) {

@@ -120,7 +120,7 @@ string packJSON(UpdateType type, int hwnd, string title, string procName, string
 //Controlla in polling le finestre attive
 void enumLoop() {
 	while (connected.load()) {
-		this_thread::sleep_for(chrono::milliseconds(500));
+		this_thread::sleep_for(chrono::milliseconds(200));
 		lock_guard<mutex> lock(mtx);
 
 		EnumWindows(EnumWindowsProc, NULL);
@@ -347,11 +347,11 @@ BOOL WINAPI ConsoleHandlerRoutine(DWORD dwCtrlType) {
 	return FALSE;
 }
 
-#if (_DEBUG)
+//#if (_DEBUG)
 int main(int argc, char *argv[]) {
-#else
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszArgs, int nWinMode) {
-#endif
+//#else
+//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszArgs, int nWinMode) {
+//#endif
 
 	SetConsoleCtrlHandler(ConsoleHandlerRoutine, TRUE);
 
